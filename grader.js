@@ -28,7 +28,9 @@ var http = require('http') // what was wrong with using this? Is restler more cl
 
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+
 var urlTarget;
+
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -39,17 +41,15 @@ var assertFileExists = function(infile) {
 };
 
 var cheerioHtmlFile = function(htmlfile) {
-    if (typeof(urlTarget)==="undefined" || typeof(urlTarget)==="null"){
-      return cheerio.load(fs.readFileSync(htmlfile));
-    }
-    else
-    {
+    if (program.url) {
       return cheerio.load(http.get(htmlfile, function(res){
           res.on('data', function (chunk) {
-              console.log('BODY: ' + chunk);
               return chunk;
             });
-      })); 
+      }));
+    }
+    else {
+      return cheerio.load(fs.readFileSync(htmlfile)); 
     }
 
 };
@@ -79,11 +79,21 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .option('-u, --url <URL>', 'URL you wish to validate' , urlTarget)
+        .option('-u, --url <URL>', 'URL you wish to validate')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
+
+        // console.log(program.url);
+
+    if (program.url) {
+      var checkJson = checkHtmlFile(program.url, program.checks);
+    }
+    else{
+      var checkJson = checkHtmlFile(program.file, program.checks);
+    }
     var outJson = JSON.stringify(checkJson, null, 4);
+    
     console.log(outJson);
+
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
